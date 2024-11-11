@@ -2,10 +2,13 @@ from flask import Flask, request, jsonify
 from tensorflow.keras.models import load_model
 from PIL import Image
 import numpy as np
-import io
+import os
 
 app = Flask(__name__)
-model = load_model('model/brain_tumor_model.h5')
+
+# Load the model from the model directory
+model_path = os.path.join('..', 'model', 'brain_tumor_model.h5')
+model = load_model(model_path)
 
 def preprocess_image(image):
     image = image.resize((64, 64))
