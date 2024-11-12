@@ -1,21 +1,19 @@
-# Use an official Python runtime as a base image
+# Dockerfile
 FROM python:3.8-slim
 
-# Set the working directory
+# Set working directory
 WORKDIR /app
 
-# Copy the requirements file
-COPY requirements.txt requirements.txt
+# Copy necessary files
+COPY src/ /app/src
+COPY model/brain_tumor_model.keras /app/model/
 
 # Install dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --upgrade pip
+RUN pip install -r /app/src/requirements.txt
 
-# Copy the Flask app and model file into the container
-COPY app.py .
-COPY ./model/brain_tumor_model.h5 ./model/brain_tumor_model.h5
-
-# Expose port 5000
+# Expose port for Flask
 EXPOSE 5000
 
-# Run the Flask app
-CMD ["python", "app.py"]
+# Run Flask app
+CMD ["python", "/app/src/app.py"]

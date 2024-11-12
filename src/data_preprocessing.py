@@ -1,11 +1,10 @@
 import os
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
-import pickle
 
-def load_and_preprocess_data(train_dir, test_dir, img_size=(64, 64), batch_size=32, save_processed_data=False, processed_data_dir=None):
+def load_and_preprocess_data(train_dir, test_dir, img_size=(64, 64), batch_size=32):
     # Data augmentation for the training set
     train_datagen = ImageDataGenerator(
-        rescale=1.0/255,        
+        rescale=1.0/255,
         rotation_range=20,
         width_shift_range=0.2,
         height_shift_range=0.2,
@@ -32,12 +31,5 @@ def load_and_preprocess_data(train_dir, test_dir, img_size=(64, 64), batch_size=
         batch_size=batch_size,
         class_mode='categorical'
     )
-
-    # Save the generators if needed
-    if save_processed_data and processed_data_dir:
-        with open(os.path.join(processed_data_dir, 'train_data.pkl'), 'wb') as train_file:
-            pickle.dump(train_generator, train_file)
-        with open(os.path.join(processed_data_dir, 'test_data.pkl'), 'wb') as test_file:
-            pickle.dump(test_generator, test_file)
 
     return train_generator, test_generator
