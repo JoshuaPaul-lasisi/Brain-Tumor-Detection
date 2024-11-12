@@ -10,7 +10,7 @@ COPY model/brain_tumor_model.keras /app/model/
 
 # Install dependencies
 RUN pip install --upgrade pip
-RUN pip install -r /app/src/requirements.txt
+RUN pip install -r /app/requirements.txt
 
 # Expose port for Flask
 EXPOSE 5000
