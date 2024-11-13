@@ -9,18 +9,19 @@ from tensorflow.keras.callbacks import ModelCheckpoint
 # Initialize Flask app
 app = Flask(__name__)
 
-# Set paths
+# Set paths and configurations
 train_dir = '../data/Training'
 test_dir = '../data/Testing'
 model_save_path = '../model/brain_tumor_model.h5'
+img_size = (64, 64)
+batch_size = 32
+num_classes = 4
+class_names = ["No Tumor", "Type 1 Tumor", "Type 2 Tumor", "Type 3 Tumor"]
 
 # Load model if available
-if os.path.exists(model_save_path):
-    model = load_model(model_save_path)
-else:
-    model = None
+model = load_model(model_save_path) if os.path.exists(model_save_path) else None
 
-# Model and data processing functions
+# Data processing function
 def load_and_preprocess_data(train_dir, test_dir, img_size=(64, 64), batch_size=32):
     train_datagen = ImageDataGenerator(
         rescale=1.0/255,
@@ -48,6 +49,7 @@ def load_and_preprocess_data(train_dir, test_dir, img_size=(64, 64), batch_size=
     )
     return train_generator, test_generator
 
+# Model building function
 def build_model(input_shape=(64, 64, 3), num_classes=4):
     model = Sequential([
         Input(shape=input_shape),
@@ -64,10 +66,10 @@ def build_model(input_shape=(64, 64, 3), num_classes=4):
     ])
     return model
 
-def compile_and_train_model(model, train_generator, test_generator, epochs=20, save_path=model_save_path):
-    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+# Model training function
+def compile_and_train_model(model, train_generator, test_generator, epochs=20):
     model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
-    checkpoint = ModelCheckpoint(save_path, monitor='val_accuracy', save_best_only=True, verbose=1)
+    checkpoint = ModelCheckpoint(model_save_path, monitor='val_accuracy', save_best_only=True, verbose=1)
 
     history = model.fit(
         train_generator,
@@ -77,22 +79,22 @@ def compile_and_train_model(model, train_generator, test_generator, epochs=20, s
     )
     return history
 
-# Flask Routes
+# Flask routes
 @app.route('/')
 def index():
-    return render_template('index.html')  # HTML form for uploading an image and training the model
+    return render_template('index.html')  # Main page with upload form and train button
 
 @app.route('/train', methods=['POST'])
 def train_model():
     global model
     if model is None:
-        train_generator, test_generator = load_and_preprocess_data(train_dir, test_dir, img_size=(64, 64), batch_size=32)
-        model = build_model(input_shape=(64, 64, 3), num_classes=4)
+        train_generator, test_generator = load_and_preprocess_data(train_dir, test_dir, img_size, batch_size)
+        model = build_model(input_shape=(64, 64, 3), num_classes=num_classes)
         
-        # Trigger training
+        # Train the model
         history = compile_and_train_model(model, train_generator, test_generator, epochs=20)
-        return "Training completed successfully!"
-    return "Model already trained."
+        return jsonify({'message': 'Training completed successfully!'}), 200
+    return jsonify({'message': 'Model already trained and loaded.'}), 200
 
 @app.route('/predict', methods=['POST'])
 def predict():
@@ -100,17 +102,14 @@ def predict():
         return jsonify({'error': 'No file provided'}), 400
 
     file = request.files['file']
-    img = load_img(file, target_size=(64, 64))
+    img = load_img(file, target_size=img_size)
     img_array = img_to_array(img) / 255.0
     img_array = np.expand_dims(img_array, axis=0)
 
     if model:
         prediction = model.predict(img_array)
         class_idx = np.argmax(prediction, axis=1)[0]
-
-        class_names = ["No Tumor", "Type 1 Tumor", "Type 2 Tumor", "Type 3 Tumor"]
         predicted_class = class_names[class_idx]
-
         return jsonify({'Prediction': predicted_class})
     else:
         return jsonify({'error': 'Model not trained or loaded'}), 500
