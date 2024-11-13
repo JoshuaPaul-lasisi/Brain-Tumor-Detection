@@ -1,19 +1,24 @@
-# Dockerfile
-FROM python:3.12-slim
+# Base image with Python
+FROM python:3.8-slim
 
-# Set working directory
+# Set the working directory
 WORKDIR /app
 
-# Copy necessary files
-COPY src/ /app/src
-COPY model/brain_tumor_model.keras /app/model/
+# Copy the application code and files to the container
+COPY . .
 
-# Install dependencies
-RUN pip install --upgrade pip
-RUN pip install -r /app/requirements.txt
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Expose port for Flask
-EXPOSE 5000
+# Expose the necessary ports for both Flask and Streamlit
+EXPOSE 5000 8501
 
-# Run Flask app
-CMD ["python", "/app/src/app.py"]
+# Environment variable to set which app to run (Flask by default)
+ENV APP_MODE=flask
+
+# Command to run either the Flask or Streamlit app based on APP_MODE
+CMD if [ "$APP_MODE" = "flask" ]; then \
+    python src/flask_app.py; \
+    else \
+    streamlit run src/streamlit_app.py --server.port 8501 --server.address 0.0.0.0; \
+    fi
